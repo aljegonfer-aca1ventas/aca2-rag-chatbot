@@ -1,0 +1,8 @@
+# Secretos
+.env
+.streamlit/secrets.toml
+kaggle.json
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
