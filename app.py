@@ -1,5 +1,6 @@
 """ACA 2 – Chatbot RAG de atención comercial (Pilar Ventas) · Streamlit + Qdrant Cloud + Gemini."""
 import os
+import re
 
 import pandas as pd
 import streamlit as st
@@ -129,6 +130,14 @@ st.caption("Chatbot RAG de atención comercial · Qdrant Cloud + Gemini · ACA 2
 tab_chat, tab_docs, tab_info = st.tabs(["💬 Chat", "📚 Gestión documental", "ℹ️ Acerca de"])
 
 
+def texto_plano(t, n=350):
+    """Fragmento en una sola línea, sin símbolos de Markdown (títulos, tablas, negritas)."""
+    t = re.sub(r"[#*|>`_]+", " ", t)
+    t = re.sub(r"-{3,}", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t[:n] + ("…" if len(t) > n else "")
+
+
 def mostrar_fuentes(res):
     if not res.get("fuentes"):
         return
@@ -138,7 +147,7 @@ def mostrar_fuentes(res):
         for f in res["fuentes"]:
             tag = " · simulado" if f.get("simulated") else ""
             st.markdown(f"**[{f['n']}] {f['source_file']}** · `{f['doc_type']}`{tag} · similitud **{f['score']:.4f}**")
-            st.caption(f["text"][:400] + ("…" if len(f["text"]) > 400 else ""))
+            st.caption(texto_plano(f["text"]))
         t = res.get("tiempos", {})
         if t:
             st.caption(" · ".join(f"{k}: {v:.2f} s" for k, v in t.items()))
@@ -153,8 +162,9 @@ with tab_chat:
     if not st.session_state.mensajes:
         st.info("Ejemplos: ¿Cuántos días tengo para retractarme de una compra? · ¿Qué cubre la garantía? · "
                 "¿Qué opinan los clientes de la batería?")
+    conversacion = st.container(height=560, border=False)  # historial con scroll; la caja de chat queda debajo
     for m in st.session_state.mensajes:
-        with st.chat_message(m["role"]):
+        with conversacion.chat_message(m["role"]):
             st.markdown(m["content"])
             if m["role"] == "assistant":
                 mostrar_fuentes(m.get("meta", {}))
@@ -163,9 +173,9 @@ with tab_chat:
     if pregunta:
         historial = [{"role": m["role"], "content": m["content"]} for m in st.session_state.mensajes]
         st.session_state.mensajes.append({"role": "user", "content": pregunta})
-        with st.chat_message("user"):
+        with conversacion.chat_message("user"):
             st.markdown(pregunta)
-        with st.chat_message("assistant"):
+        with conversacion.chat_message("assistant"):
             with st.spinner("Buscando en los documentos y generando la respuesta…"):
                 try:
                     r = rag.responder(gclient, qclient, cfg, pregunta, historial)
