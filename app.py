@@ -162,7 +162,8 @@ with tab_chat:
     if not st.session_state.mensajes:
         st.info("Ejemplos: ¿Cuántos días tengo para retractarme de una compra? · ¿Qué cubre la garantía? · "
                 "¿Qué opinan los clientes de la batería?")
-    conversacion = st.container(height=560, border=False)  # historial con scroll; la caja de chat queda debajo
+    # Con mensajes: historial con scroll y la caja de chat debajo. Sin mensajes: sin espacio en blanco.
+    conversacion = st.container(height=520, border=False) if st.session_state.mensajes else st.container()
     for m in st.session_state.mensajes:
         with conversacion.chat_message(m["role"]):
             st.markdown(m["content"])
